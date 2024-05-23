@@ -3,12 +3,8 @@
 
 Run a query on the database.
 """
-function _run_query(query, connection)
- 
-    statement = DBInterface.prepare(connection, query)
-    results = DBInterface.execute(statement) |> DataFrame
-    DBInterface.close!(statement)
-
+function _run_query(query, db::DuckDB.DB)
+    results = DBInterface.execute(db, query) |> DataFrame
     return results
 end
 
@@ -22,7 +18,9 @@ Create a DBInterface connection to a databse.
 """
 function _create_default_connection(filepath = joinpath("data", "ReactiveAgents.duckdb"))
     isdir(dirname(filepath)) || mkdir(dirname(filepath))
-    return DBInterface.connect(DuckDB.DB, filepath)
+    db = DuckDB.DB(filepath)
+    DBInterface.connect(db)
+    return db
 end
 
 ######################################
@@ -122,10 +120,9 @@ end
 function _get_model_by_town_id(townId::Int, connection)
     try
         model = _run_query("SELECT Model FROM TownDim WHERE TownID = $townId", connection)[1,1]
-        model = parse.(UInt8, split(model, ","))
-        return Deserialize_Model(convert.(UInt8, model))
+        return deserialize(model)
     catch e
-        @warn "Failed to extract model with TownId $townId"
+        @warn "Failed to extract model with TownId $townId: $e"
         return nothing
     end
 end
@@ -133,8 +130,7 @@ end
 function _get_model_by_network_id(networkId::Int, connection)
     try
         model = _run_query("SELECT Model FROM NetworkDim WHERE NetworkID = $networkId", connection)[1,1]
-        model = parse.(UInt8, split(model, ","))
-        return Deserialize_Model(convert.(UInt8, model))
+        return deserialize(model)
     catch e
         @warn "Failed to extract model with NetworkId $networkId"
         return nothing
@@ -180,9 +176,9 @@ function _get_model_by_behavior_id(behaviorId::Int, connection)
     """
     vaxIdArr = run_query(query, connection)[!,1]
 
-    Update_Agents_Attribute!(model, maskIdArr, :will_mask, [true, true, true])
-    Update_Agents_Attribute!(model, vaxIdArr, :status, :V)
-    Update_Agents_Attribute!(model, vaxIdArr, :vaccinated, true)
+    # Update_Agents_Attribute!(model, maskIdArr, :will_mask, [true, true, true])
+    # Update_Agents_Attribute!(model, vaxIdArr, :status, :V)
+    # Update_Agents_Attribute!(model, vaxIdArr, :vaccinated, true)
 
     return model
 end

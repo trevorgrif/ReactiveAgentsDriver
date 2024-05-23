@@ -38,6 +38,7 @@ using StatsBase
 using Random
 using Distributions
 using HypothesisTests
+using Dates
 
 include("api.jl")
 include("server.jl")

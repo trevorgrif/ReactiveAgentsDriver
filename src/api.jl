@@ -14,29 +14,29 @@ Run the RuralABM package with default parameters.
 - `OUTPUT_DIR="../output": Default output directory location.
 """
 function run_ruralABM(;
-    SOCIAL_NETWORKS = 10,
-    NETWORK_LENGTH = 30,
-    MASKING_LEVELS = 5,
-    VACCINATION_LEVELS = 5,
-    DISTRIBUTION_TYPE = [0, 0],
-    MODEL_RUNS = 100,
-    TOWN_NAMES = "small",
-    STORE_NETWORK_SCM = true,
-    STORE_EPIDEMIC_SCM = true,
-    NUMBER_WORKERS = 5
-    )
+    SOCIAL_NETWORKS=10,
+    NETWORK_LENGTH=30,
+    MASKING_LEVELS=5,
+    VACCINATION_LEVELS=5,
+    DISTRIBUTION_TYPE=[0, 0],
+    MODEL_RUNS=100,
+    TOWN_NAMES="small",
+    STORE_NETWORK_SCM=true,
+    STORE_EPIDEMIC_SCM=true,
+    NUMBER_WORKERS=5
+)
 
     _run_ruralABM(
-        SOCIAL_NETWORKS = SOCIAL_NETWORKS,
-        NETWORK_LENGTH = NETWORK_LENGTH,
-        MASKING_LEVELS = MASKING_LEVELS,
-        VACCINATION_LEVELS = VACCINATION_LEVELS,
-        DISTRIBUTION_TYPE = DISTRIBUTION_TYPE,
-        MODEL_RUNS = MODEL_RUNS,
-        TOWN_NAMES = TOWN_NAMES,
-        STORE_NETWORK_SCM = STORE_NETWORK_SCM,
-        STORE_EPIDEMIC_SCM = STORE_EPIDEMIC_SCM,
-        NUMBER_WORKERS = NUMBER_WORKERS
+        SOCIAL_NETWORKS=SOCIAL_NETWORKS,
+        NETWORK_LENGTH=NETWORK_LENGTH,
+        MASKING_LEVELS=MASKING_LEVELS,
+        VACCINATION_LEVELS=VACCINATION_LEVELS,
+        DISTRIBUTION_TYPE=DISTRIBUTION_TYPE,
+        MODEL_RUNS=MODEL_RUNS,
+        TOWN_NAMES=TOWN_NAMES,
+        STORE_NETWORK_SCM=STORE_NETWORK_SCM,
+        STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM,
+        NUMBER_WORKERS=NUMBER_WORKERS
     )
 end
 
@@ -45,13 +45,13 @@ end
 
 Run a query on the database.
 """
-function run_query(query::String, connection::DuckDB.DB)
-    _run_query(query, connection)
+function run_query(query::String, db::DuckDB.DB)
+    _run_query(query, db)
 end
 
 
 # Make a global variable to store connection details, this will be called 
-function create_database_structure(connection)    
+function create_database_structure(connection)
     _create_database_structure(connection)
 end
 
@@ -67,18 +67,18 @@ function drop_database_structure()
     _drop_database_structure()
 end
 
-function analyze_landing(connection = _create_default_connection())
+function analyze_landing(connection=_create_default_connection())
     _load_staging_tables(connection)
 end
 
-function analyze_staging(connection = _create_default_connection())
+function analyze_staging(connection=_create_default_connection())
     _load_fact_tables(connection)
 end
 
-function export_database(filepath, connection = _create_default_connection())
+function export_database(filepath, connection=_create_default_connection())
     _export_database(filepath, connection)
 end
-    
+
 function load_exported_db(filepath)
     connection = _create_default_connection()
 
@@ -165,7 +165,7 @@ function disconnect_from_database!(connection)
     DBInterface.close(connection)
 end
 
-function export_table(table_name, filepath, connection = _create_default_connection())
+function export_table(table_name, filepath, connection=_create_default_connection())
     _export_table(table_name, filepath, connection)
 end
 
@@ -193,40 +193,38 @@ Run RuralABM simulations based on the values passed. See documentation of Run_Ru
 function run_simulations(
     townData::town_parameters,
     networkData::network_parameters,
-    networkCount::Int, 
-    behaviorData::behavior_parameters, 
-    behaviorCount::Int, 
+    networkCount::Int,
+    behaviorData::behavior_parameters,
+    behaviorCount::Int,
     epidemicCount::Int,
-    connection::DuckDB.DB;
-
-    STORE_NETWORK_SCM::Bool = true,
-     STORE_EPIDEMIC_SCM::Bool = true
-    )
+    db::DuckDB.DB; STORE_NETWORK_SCM::Bool=true,
+    STORE_EPIDEMIC_SCM::Bool=true
+)
     # TODO: Validate database structure
 
     # Create town
     println("Creating Town")
-    townId = create_town(townData.type, connection)
+    townId = create_town(townData.type, db)
 
     println("Filling Networks")
-    networkIds = fill_network_target(townId, networkData.duration, networkCount, connection; STORE_NETWORK_SCM = STORE_NETWORK_SCM)
-    
+    networkIds = fill_network_target(townId, networkData.duration, networkCount, db; STORE_NETWORK_SCM=STORE_NETWORK_SCM)
+
     println("Filling Behaviors")
     behaviorIds = []
     for networkId in networkIds
-        networkBehaviorIds = fill_behaved_network_range(networkId, behaviorData.maskDistributionType, behaviorData.vaxDistributionType, behaviorData.maskLevels, behaviorData.vaxLevels, behaviorCount, connection)
+        networkBehaviorIds = fill_behaved_network_range(networkId, behaviorData.maskDistributionType, behaviorData.vaxDistributionType, behaviorData.maskLevels, behaviorData.vaxLevels, behaviorCount, db)
         push!(behaviorIds, networkBehaviorIds...)
     end
 
     println("Filling Epidemics")
     epidemicIds = []
     for behaviorId in behaviorIds
-        behaviorEpidemicIds = fill_epidemic_target(behaviorId, epidemicCount, connection::DuckDB.DB; STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM)
+        behaviorEpidemicIds = fill_epidemic_target(behaviorId, epidemicCount, db::DuckDB.DB; STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM)
         push!(epidemicIds, behaviorEpidemicIds...)
     end
 
-    connection = vacuum_database(connection)
-    return connection
+    db = vacuum_database(db)
+    return db
 end
 
 function vacuum_database(connection)
@@ -236,42 +234,75 @@ end
 function run_simulations(
     townId::Int,
     networkData::network_parameters,
-    networkCount::Int, 
-    behaviorData::behavior_parameters, 
-    behaviorCount::Int, 
+    networkCount::Int,
+    behaviorData::behavior_parameters,
+    behaviorCount::Int,
     epidemicCount::Int,
-    connection::DuckDB.DB;
-
-    STORE_NETWORK_SCM::Bool = true,
-     STORE_EPIDEMIC_SCM::Bool = true
-    )
+    db::DuckDB.DB; STORE_NETWORK_SCM::Bool=true,
+    STORE_EPIDEMIC_SCM::Bool=true
+)
     # TODO: Validate database structure
 
+    # Set database to use all threads
+    run_query("SET threads TO $(Threads.nthreads())", db)
+
     println("Filling Networks")
-    networkIds = fill_network_target(townId, networkData.duration, networkCount, connection; STORE_NETWORK_SCM = STORE_NETWORK_SCM)
-    
+    networkIds = fill_network_target(townId, networkData.duration, networkCount, db; STORE_NETWORK_SCM=STORE_NETWORK_SCM)
+
     println("Filling Behaviors")
     behaviorIds = []
     for networkId in networkIds
-        networkBehaviorIds = fill_behaved_network_range(networkId, behaviorData.maskDistributionType, behaviorData.vaxDistributionType, behaviorData.maskLevels, behaviorData.vaxLevels, behaviorCount, connection)
+        networkBehaviorIds = fill_behaved_network_range(networkId, behaviorData.maskDistributionType, behaviorData.vaxDistributionType, behaviorData.maskLevels, behaviorData.vaxLevels, behaviorCount, db)
         push!(behaviorIds, networkBehaviorIds...)
     end
 
     println("Filling Epidemics")
     epidemicIds = []
+    baseModels = []
     for behaviorId in behaviorIds
-        behaviorEpidemicIds = fill_epidemic_target(behaviorId, epidemicCount, connection::DuckDB.DB; STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM)
-        push!(epidemicIds, behaviorEpidemicIds...)
+        model = _get_model_by_behavior_id(behaviorId, db)
+        push!(baseModels, model)
     end
-    connection = vacuum_database(connection)
-    return connection
+
+    behaviorsPerBatch = nworkers()
+    for modelBatch in collect(Iterators.partition(baseModels, behaviorsPerBatch))
+        # Compute the number of epidemics being ran
+        numBehaviors = length(modelBatch)
+        numEpidemics = epidemicCount * numBehaviors
+        println("Starting Batch of $(numEpidemics) epidemics")
+        batchStartTime = now()
+
+        # Run numEpidemics for each behavior over the cluster --> flatten results
+        # Since we don't store the models after the epidemic, we shouldn't return the entire model from 'fill_epidemic_target'
+        epidemicRunStartTime = now()
+        models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
+        models = reduce(vcat, models)
+        println("Finished Running Epidemics ($(length(models))): $(now()-epidemicRunStartTime)")
+
+        epidemicIDStart = now()
+        for model in models
+            id = run_query("SELECT nextval('EpidemicDimSequence')", db)[1, 1]
+            model.epidemic_id = id
+        end
+        println("Got Epidemic IDs: $(now()-epidemicIDStart)")
+
+        epidemicWriteStart = now()
+        epidemicIds = pmap(_append_epidemic_level_data, models, [STORE_EPIDEMIC_SCM for _ in 1:length(models)], [db for _ in 1:length(models)]; distributed=false)
+        println("Wrote to DB: $(now()-epidemicWriteStart)")
+
+        batchDuration = now() - batchStartTime
+        println("Finished Batch: $(batchDuration) \nEpidemicsPerSec: $(numEpidemics/(batchDuration.value/1000))")
+    end
+
+    # connection = vacuum_database(connection)
+    return db
 end
 
 function create_town(town_type::String, connection::DuckDB.DB)
     _create_town!(town_type, connection)
 end
 
-function fill_network_target(townId::Int, duration::Int, targetNetworkAmount::Int, connection::DuckDB.DB; STORE_NETWORK_SCM = false)
+function fill_network_target(townId::Int, duration::Int, targetNetworkAmount::Int, connection::DuckDB.DB; STORE_NETWORK_SCM=false)
     # Data Validation
     @assert (targetNetworkAmount >= 0) "Target network amount must be positive: $targetNetworkAmount"
     @assert (duration > 0) "Network duration length must be greater than 0: $targetNetworkAmount"
@@ -286,13 +317,14 @@ function fill_network_target(townId::Int, duration::Int, targetNetworkAmount::In
         WHERE TownID = $townId
         and ConstructionLengthDays = $duration
     """
-    networkIds = run_query(query, connection)[!,1] .|> Int
+    networkIds = run_query(query, connection)[!, 1] .|> Int
     numberNetworks = length(networkIds)
     (numberNetworks >= targetNetworkAmount) && return networkIds
 
     networkRuns = targetNetworkAmount - numberNetworks
     for _ in 1:networkRuns
-        networkId = _create_network!(deepcopy(model), duration, connection, STORE_NETWORK_SCM = STORE_NETWORK_SCM)
+        @show "Adding a network"
+        networkId = _create_network!(deepcopy(model), duration, connection, STORE_NETWORK_SCM=STORE_NETWORK_SCM)
         push!(networkIds, networkId)
     end
 
@@ -318,7 +350,7 @@ function fill_behaved_network_target(networkId::Int, maskDistributionType::Strin
         AND MaskDistributionType = '$maskDistributionType'
         AND VaxDistributionType = '$vaxDistributionType'
     """
-    behaviorIds = run_query(query, connection)[!,1] .|> Int
+    behaviorIds = run_query(query, connection)[!, 1] .|> Int
     numberBehaviors = length(behaviorIds)
     (numberBehaviors >= targetBehavedNetworkAmount) && return behaviorIds
 
@@ -347,7 +379,7 @@ function fill_behaved_network_target(model, maskDistributionType::String, vaxDis
         AND MaskDistributionType = '$maskDistributionType'
         AND VaxDistributionType = '$vaxDistributionType'
     """
-    behaviorIds = run_query(query, connection)[!,1] .|> Int
+    behaviorIds = run_query(query, connection)[!, 1] .|> Int
     numberBehaviors = length(behaviorIds)
     (numberBehaviors >= targetBehavedNetworkAmount) && return behaviorIds
 
@@ -368,13 +400,13 @@ function fill_behaved_network_range(networkId::Int, maskDistributionType::String
     model = _get_model_by_network_id(networkId, connection)
     model === nothing && return []
 
-    mask_increment = floor(100/maskLevels)
-    vax_increment = floor(100/vaxLevels)
+    mask_increment = floor(100 / maskLevels)
+    vax_increment = floor(100 / vaxLevels)
 
     behaviorIds = []
     for mask_step in 0:(maskLevels-1)
         for vax_step in 0:(vaxLevels-1)
-            behaviorId = fill_behaved_network_target(model, maskDistributionType, vaxDistributionType, Int(mask_step*mask_increment), Int(vax_step*vax_increment), targetBehavedNetworkAmount, connection)
+            behaviorId = fill_behaved_network_target(model, maskDistributionType, vaxDistributionType, Int(mask_step * mask_increment), Int(vax_step * vax_increment), targetBehavedNetworkAmount, connection)
             push!(behaviorIds, behaviorId...)
         end
     end
@@ -382,26 +414,8 @@ function fill_behaved_network_range(networkId::Int, maskDistributionType::String
     return behaviorIds
 end
 
-function fill_epidemic_target(behaviorId::Int, targetEpidemicAmount::Int, connection::DuckDB.DB; STORE_EPIDEMIC_SCM=false)
+function fill_epidemic_target(model, targetEpidemicAmount::Int, STORE_EPIDEMIC_SCM=false)
     @assert (targetEpidemicAmount >= 0) "Target epidemic amount must be positive: $targetEpidemicAmount"
-
-    # TODO: Check that model.network_id and model.population_id and model.behavior_id exist in database
-    model = _get_model_by_behavior_id(behaviorId, connection)
-    model === nothing && return []
-
-    query = """
-        SELECT EpidemicID 
-        FROM EpidemicDim
-        WHERE BehaviorID = $(model.behavior_id)
-    """
-    epidemicIds = run_query(query, connection)[!,1] .|> Int
-    numberEpidemics = length(epidemicIds)
-    (numberEpidemics >= targetEpidemicAmount) && return epidemicIds
-
-    epidemicRuns = targetEpidemicAmount - numberEpidemics
-    completeEpidemicIds = _create_epidemic_distributed!(model, epidemicRuns, connection, STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM)
-    append!(epidemicIds, completeEpidemicIds)
-    println("Complete Epidemics: $(first(completeEpidemicIds)) - $(last(completeEpidemicIds))")
-    
-    return epidemicIds
+    models = _create_epidemic_distributed!(model, targetEpidemicAmount, STORE_EPIDEMIC_SCM=STORE_EPIDEMIC_SCM)
+    return models
 end

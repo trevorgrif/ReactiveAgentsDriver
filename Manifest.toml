@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "03ce5612791e8bf34a37094c6c2e08d6a11085f3"
+project_hash = "6399d4c293e670d10d289aa25bf4f52f8035dd0e"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Markdown", "Test"]
@@ -294,8 +294,8 @@ uuid = "2cbbab25-fc8b-58cf-88d4-687a02676033"
 version = "0.10.1+0"
 
 [[deps.EpidemicAgentModels]]
-deps = ["Agents", "CSV", "DataFrames", "Distributions", "Graphs", "MetaGraphs", "Parameters", "Random", "Revise", "SparseArrays", "Test"]
-git-tree-sha1 = "cadeccc14c719702ffe6223c1c04d7a74f60b1ad"
+deps = ["Agents", "Base64", "CSV", "DataFrames", "Distributions", "Graphs", "MetaGraphs", "Parameters", "Random", "Revise", "Serialization", "SparseArrays", "Test"]
+git-tree-sha1 = "3cc18797a4b140b30c071c6b0d52bb65568494f3"
 repo-rev = "main"
 repo-url = "https://github.com/trevorgrif/EpidemicAgentModels.git"
 uuid = "9fab8c7d-9031-4efd-8af5-7f4b7134a8cd"
