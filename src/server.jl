@@ -59,7 +59,8 @@ function _create_tables(connection)
     append!(query_list, ["CREATE OR REPLACE TABLE HouseholdLoad (TownID USMALLINT, HouseholdID INT, ChildCount INT, AdultCount INT, ElderCount INT, PRIMARY KEY (TownID, HouseholdID))"])
     append!(query_list, ["CREATE OR REPLACE TABLE NetworkDim (NetworkID USMALLINT PRIMARY KEY, TownID INT, ConstructionLengthDays INT, Model String)"])
     append!(query_list, ["CREATE OR REPLACE TABLE NetworkSCMLoad (NetworkID USMALLINT, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (NetworkID, Agent1, Agent2))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT PRIMARY KEY, NetworkID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT PRIMARY KEY, NetworkID INT, DiseaseParameterID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE DiseaseParameters (DiseaseParameterID USMALLINT PRIMARY KEY, BetaStart DOUBLE, BetaEnd DOUBLE, InfectiousPeriod INT, Gamma1 DOUBLE, Gamma2 DOUBLE, ReinfectionProbability DOUBLE, VaxInfectionProbability DOUBLE)"])
     append!(query_list, ["CREATE OR REPLACE TABLE AgentLoad (BehaviorID UINTEGER, AgentID INT, AgentHouseholdID INT, IsMasking INT, IsVaxed INT, PRIMARY KEY (BehaviorID, AgentID))"])
     append!(query_list, ["CREATE OR REPLACE TABLE EpidemicDim (EpidemicID UINTEGER PRIMARY KEY, BehaviorID UINTEGER, InfectedTotal USMALLINT, InfectedMax USMALLINT, PeakDay USMALLINT, RecoveredTotal USMALLINT, RecoveredMasked USMALLINT, RecoveredVaccinated USMALLINT, RecoveredMaskAndVax USMALLINT)"])
     append!(query_list, ["CREATE OR REPLACE TABLE EpidemicSCMLoad (EpidemicID UINTEGER, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (EpidemicID, Agent1, Agent2))"])
@@ -71,6 +72,7 @@ function _create_tables(connection)
     end
 end
 
+# Doesn't this drop all primary key logic??
 function _vacuum_database(connection)
     database_name = _run_query("SELECT database_name FROM duckdb_databases() WHERE database_name not in ('system', 'temp');", connection)[1,1]
     path_connection = _run_query("SELECT path FROM duckdb_databases() WHERE database_name = '$(database_name)';", connection)[1,1]
@@ -80,20 +82,23 @@ function _vacuum_database(connection)
     connection_vacuum = _create_default_connection(joinpath("data", "$(database_name)_vacuumed.duckdb"))
 
     _run_query("ATTACH '$(joinpath("data","ReactiveAgents.duckdb"))' as source (READ_ONLY);", connection_vacuum)
+
+    _create_tables(connection_vacuum)
     
-    _run_query("CREATE TABLE PopulationDim AS SELECT * from source.main.PopulationDim;", connection_vacuum)
-    _run_query("CREATE TABLE PopulationLoad AS SELECT * from source.main.PopulationLoad;", connection_vacuum)
-    _run_query("CREATE TABLE TownDim AS SELECT * from source.main.TownDim;", connection_vacuum)
-    _run_query("CREATE TABLE BusinessLoad AS SELECT * from source.main.BusinessLoad;", connection_vacuum)
-    _run_query("CREATE TABLE HouseholdLoad AS SELECT * from source.main.HouseholdLoad;", connection_vacuum)
-    _run_query("CREATE TABLE NetworkDim AS SELECT * from source.main.NetworkDim;", connection_vacuum)
-    _run_query("CREATE TABLE NetworkSCMLoad AS SELECT * from source.main.NetworkSCMLoad;", connection_vacuum)
-    _run_query("CREATE TABLE BehaviorDim AS SELECT * from source.main.BehaviorDim;", connection_vacuum)
-    _run_query("CREATE TABLE AgentLoad AS SELECT * from source.main.AgentLoad;", connection_vacuum)
-    _run_query("CREATE TABLE EpidemicDim AS SELECT * from source.main.EpidemicDim;", connection_vacuum)
-    _run_query("CREATE TABLE EpidemicLoad AS SELECT * from source.main.EpidemicLoad;", connection_vacuum)
-    _run_query("CREATE TABLE EpidemicSCMLoad AS SELECT * from source.main.EpidemicSCMLoad;", connection_vacuum)
-    _run_query("CREATE TABLE TransmissionLoad AS SELECT * from source.main.TransmissionLoad;", connection_vacuum)
+    _run_query("INSERT INTO PopulationDim (SELECT * from source.main.PopulationDim);", connection_vacuum)
+    _run_query("INSERT INTO PopulationLoad (SELECT * from source.main.PopulationLoad);", connection_vacuum)
+    _run_query("INSERT INTO TownDim (SELECT * from source.main.TownDim);", connection_vacuum)
+    _run_query("INSERT INTO BusinessLoad (SELECT * from source.main.BusinessLoad);", connection_vacuum)
+    _run_query("INSERT INTO HouseholdLoad (SELECT * from source.main.HouseholdLoad);", connection_vacuum)
+    _run_query("INSERT INTO NetworkDim (SELECT * from source.main.NetworkDim);", connection_vacuum)
+    _run_query("INSERT INTO NetworkSCMLoad (SELECT * from source.main.NetworkSCMLoad);", connection_vacuum)
+    _run_query("INSERT INTO BehaviorDim (SELECT * from source.main.BehaviorDim);", connection_vacuum)
+    _run_query("INSERT INTO DiseaseParameters (SELECT * from source.main.DiseaseParameters);", connection_vacuum)
+    _run_query("INSERT INTO AgentLoad (SELECT * from source.main.AgentLoad);", connection_vacuum)
+    _run_query("INSERT INTO EpidemicDim (SELECT * from source.main.EpidemicDim);", connection_vacuum)
+    _run_query("INSERT INTO EpidemicLoad (SELECT * from source.main.EpidemicLoad);", connection_vacuum)
+    _run_query("INSERT INTO EpidemicSCMLoad (SELECT * from source.main.EpidemicSCMLoad);", connection_vacuum)
+    _run_query("INSERT INTO TransmissionLoad (SELECT * from source.main.TransmissionLoad);", connection_vacuum)
 
     val = _run_query("SELECT nextval('source.main.PopulationDimSequence')", connection_vacuum)[1,1]
     _run_query("CREATE SEQUENCE PopulationDimSequence START $val", connection_vacuum)
@@ -105,6 +110,8 @@ function _vacuum_database(connection)
     _run_query("CREATE SEQUENCE NetworkDimSequence START $val", connection_vacuum)
     val = _run_query("SELECT nextval('source.main.BehaviorDimSequence')", connection_vacuum)[1,1]
     _run_query("CREATE SEQUENCE BehaviorDimSequence START $val", connection_vacuum)
+    val = _run_query("SELECT nextval('source.main.DiseaseParametersSequence')", connection_vacuum)[1,1]
+    _run_query("CREATE SEQUENCE DiseaseParametersSequence START $val", connection_vacuum)
     val = _run_query("SELECT nextval('source.main.EpidemicDimSequence')", connection_vacuum)[1,1]
     _run_query("CREATE SEQUENCE EpidemicDimSequence START $val", connection_vacuum)
 
@@ -212,6 +219,7 @@ function _create_sequences(connection)
     append!(query_list, ["CREATE SEQUENCE BusinessTypeDimSequence START 1"])
     append!(query_list, ["CREATE SEQUENCE NetworkDimSequence START 1"])
     append!(query_list, ["CREATE SEQUENCE BehaviorDimSequence START 1"])
+    append!(query_list, ["CREATE SEQUENCE DiseaseParametersSequence START 1"])
     append!(query_list, ["CREATE SEQUENCE EpidemicDimSequence START 1"])
 
     for query in query_list
@@ -226,6 +234,7 @@ function _drop_sequences(connection)
     append!(query_list, ["DROP SEQUENCE IF EXISTS BusinessTypeDimSequence"])
     append!(query_list, ["DROP SEQUENCE IF EXISTS NetworkDimSequence"])
     append!(query_list, ["DROP SEQUENCE IF EXISTS BehaviorDimSequence"])
+    append!(query_list, ["DROP SEQUENCE IF EXISTS DiseaseParametersSequence"])
     append!(query_list, ["DROP SEQUENCE IF EXISTS EpidemicDimSequence"])
 
     for query in query_list
