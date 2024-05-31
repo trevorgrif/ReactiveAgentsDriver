@@ -20,7 +20,8 @@ town_parameters,
 network_parameters,
 behavior_parameters,
 create_town,
-vacuum_database
+vacuum_database,
+DiseaseParameters
 
 # Modules used for parallel computing
 using EpidemicAgentModels
@@ -43,8 +44,8 @@ using Dates
 include("api.jl")
 include("server.jl")
 include("simulations.jl")
-include("stage.jl")
 include("report.jl")
+include("stage.jl")
 include("fact.jl")
 
 end

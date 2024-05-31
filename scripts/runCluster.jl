@@ -2,20 +2,17 @@ using Distributed
 
 NUM_PROCESSORS = 50 # Optimally set to the number of available (logical processors) - 1
 
-# Example for a standalone server simulation
-# addprocs(NUM_PROCESSORS)
-
 # Example for a Slurm Cluster simulation
 addprocs(SlurmManager(NUM_PROCESSORS))
 
 @everywhere using Pkg
-@everywhere Pkg.activate(@__DIR__)
+@everywhere Pkg.activate(joinpath(@__DIR__,".."))
 @everywhere using ReactiveAgentsDriver
 @everywhere using ClusterManagers
 
 # Run Variables
-NETWORK_SCM = false
-EPIDEMIC_SCM = false
+NETWORK_SCM = true
+EPIDEMIC_SCM = true
 TOWN_ID = 1
 NUM_NETWORKS = 10
 NUM_BEHAVIORS = 1
@@ -29,7 +26,6 @@ BEHAVIOR_DISTR_TYPES = [
    ("Watts", "Random"),
    ("Watts", "Watts")
 ]
-
 
 con = connect_to_database()
 

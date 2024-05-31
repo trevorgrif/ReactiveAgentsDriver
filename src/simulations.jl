@@ -388,6 +388,7 @@ function _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM::Bool, db::DuckDB
     appender = DuckDB.Appender(db, "EpidemicDim")
     DuckDB.append(appender, model.epidemic_id)
     DuckDB.append(appender, model.behavior_id)
+    DuckDB.append(appender, model.disease_id)    
     DuckDB.append(appender, model.epidemic_statistics[1,1])
     DuckDB.append(appender, model.epidemic_statistics[1,2])
     DuckDB.append(appender, model.epidemic_statistics[1,3])
@@ -422,25 +423,24 @@ function _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM::Bool, db::DuckDB
     DuckDB.close(appender)
 
     # Store Epidemic SCM
-    if STORE_EPIDEMIC_SCM
-        socialContactVector = adjacency_compact(model)
-        appender = DuckDB.Appender(db, "EpidemicSCMLoad")
-        population = model.init_pop_size
-        epidemicSCMItr = 1
-        for agent1 in 1:population
-            for agent2 in agent1+1:population
-                DuckDB.append(appender, model.epidemic_id)
-                DuckDB.append(appender, agent1)
-                DuckDB.append(appender, agent2)
-                DuckDB.append(appender, socialContactVector[epidemicSCMItr])
-                DuckDB.end_row(appender)
-                DuckDB.flush(appender)
-                epidemicSCMItr += 1
-            end
+    !STORE_EPIDEMIC_SCM && return model.epidemic_id
+
+    socialContactVector = adjacency_compact(model)
+    appender = DuckDB.Appender(db, "EpidemicSCMLoad")
+    population = model.init_pop_size
+    epidemicSCMItr = 1
+    for agent1 in 1:population
+        for agent2 in agent1+1:population
+            DuckDB.append(appender, model.epidemic_id)
+            DuckDB.append(appender, agent1)
+            DuckDB.append(appender, agent2)
+            DuckDB.append(appender, socialContactVector[epidemicSCMItr])
+            DuckDB.end_row(appender)
+            epidemicSCMItr += 1
         end
-        DuckDB.close(appender)
     end
-    
+    DuckDB.close(appender)
+
     return model.epidemic_id
 end
 

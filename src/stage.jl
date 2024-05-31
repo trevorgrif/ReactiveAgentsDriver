@@ -37,6 +37,7 @@ function _load_epidemic_results_table(connection)
             InfectedTotal INTEGER,
             InfectedMax INTEGER, 
             PeakDay INTEGER, 
+            LengthHours DOUBLE,
             RecoveredTotal INTEGER, 
             RecoveredMasked INTEGER, 
             RecoveredVaccinated INTEGER, 
@@ -54,6 +55,14 @@ function _load_epidemic_results_table(connection)
     _run_query(query, connection)
 
     query = """
+    WITH StartFinishHours AS (
+        SELECT 
+            EpidemicID,
+            Min(Hour) as Start,
+            Max(Hour) as Finish 
+        FROM EpidemicLoad
+        GROUP BY EpidemicID
+        )
     INSERT INTO STG.EpidemicResults
     SELECT DISTINCT
         EpidemicDim.EpidemicID,
@@ -65,6 +74,7 @@ function _load_epidemic_results_table(connection)
         EpidemicDim.InfectedTotal,
         EpidemicDim.InfectedMax,
         EpidemicDim.PeakDay,
+        (Finish - Start) / 12 AS LengthHours,
         EpidemicDim.RecoveredTotal,
         EpidemicDim.RecoveredMasked,
         EpidemicDim.RecoveredVaccinated,
@@ -124,6 +134,7 @@ function _load_epidemic_results_table(connection)
         GROUP BY AgentLoad.BehaviorID
     ) ProtectedTotals
     ON ProtectedTotals.BehaviorID = InfectedTotals.BehaviorID
+    LEFT JOIN StartFinishHours ON StartFinishHours.EpidemicID = EpidemicDim.EpidemicID
     """
     _run_query(query, connection)
 
@@ -1016,4 +1027,20 @@ function watts_statistical_test(connection::DuckDB.DB, targetStat::String = "Inf
         _run_query(query, connection)
     end
 
+end
+
+"""
+    R0(infectionPeriod::Int64, gamma::Vector{Float64}, rateOfDecay::Int64, stepsPerDay::Int64 = 12)
+
+Compute R_0 for a given infection period, gamma, and rate of decay.
+"""
+function R0(infectionPeriod::Int64, gamma::Vector{Float64}, rateOfDecay::Int64, stepsPerDay::Int64 = 12)
+    @assert infectionPeriod > 0 "Infection period must be greater than 0"
+    @assert length(gamma) == 2 "Gamma must be a vector of length 2"
+
+    result::Float64 = 0
+    for i in 1:(infectionPeriod*stepsPerDay)
+        result += (gamma[1]*(i/stepsPerDay))/((gamma[2])^rateOfDecay + (i/stepsPerDay)^rateOfDecay)
+    end
+    return result
 end

@@ -45,7 +45,7 @@ end
 
 Run a query on the database.
 """
-function run_query(query::String, db::DuckDB.DB)
+function run_query(query::String, db)
     _run_query(query, db)
 end
 
@@ -239,7 +239,8 @@ function run_simulations(
     behaviorCount::Int,
     epidemicCount::Int,
     db::DuckDB.DB; STORE_NETWORK_SCM::Bool=true,
-    STORE_EPIDEMIC_SCM::Bool=true
+    STORE_EPIDEMIC_SCM::Bool=true,
+    DISEASE_PARAMS::Vector{DiseaseParameters}=[DiseaseParameters()]
 )
     # TODO: Validate database structure
 
@@ -261,10 +262,54 @@ function run_simulations(
     baseModels = []
     for behaviorId in behaviorIds
         model = _get_model_by_behavior_id(behaviorId, db)
-        push!(baseModels, model)
+        for i in collect(1:length(DISEASE_PARAMS))
+            model_cp = deepcopy(model)
+            model_cp.disease_parameters = DISEASE_PARAMS[i]
+
+             # Append disease parameters
+            query = """
+                SELECT DiseaseParameterID FROM DiseaseParameters
+                WHERE BetaStart = $(model_cp.disease_parameters.βrange[1])
+                AND BetaEnd = $(model_cp.disease_parameters.βrange[2])
+                AND ReinfectionProbability = $(model_cp.disease_parameters.rp)
+                AND VaxInfectionProbability = $(model_cp.disease_parameters.vip)
+                AND InfectiousPeriod = $(model_cp.disease_parameters.infectious_period)
+                AND Gamma1 = $(model_cp.disease_parameters.γ_parameters[1])
+                AND Gamma2 = $(model_cp.disease_parameters.γ_parameters[2])
+                AND RateOfDecay = $(model_cp.disease_parameters.rate_of_decay)
+            """
+            result = run_query(query, db)
+
+            diseaseParameterID = 0
+            if size(result)[1] !== 0
+                diseaseParameterID = result[1,1]
+            else 
+                query = "SELECT nextval('DiseaseParametersSequence')"
+                diseaseParameterID = run_query(query, db)[1,1]
+                Rnot = R0(model_cp.disease_parameters.infectious_period, model_cp.disease_parameters.γ_parameters, model_cp.disease_parameters.rate_of_decay)
+
+                appender = DuckDB.Appender(db, "DiseaseParameters")
+                DuckDB.append(appender, diseaseParameterID)
+                DuckDB.append(appender, model_cp.disease_parameters.βrange[1])
+                DuckDB.append(appender, model_cp.disease_parameters.βrange[2])
+                DuckDB.append(appender, model_cp.disease_parameters.infectious_period)
+                DuckDB.append(appender, model_cp.disease_parameters.γ_parameters[1])
+                DuckDB.append(appender, model_cp.disease_parameters.γ_parameters[2])
+                DuckDB.append(appender, model_cp.disease_parameters.rp)
+                DuckDB.append(appender, model_cp.disease_parameters.vip)
+                DuckDB.append(appender, model_cp.disease_parameters.rate_of_decay)
+                DuckDB.append(appender, Rnot)
+                DuckDB.end_row(appender)
+                DuckDB.close(appender)
+            end
+            model_cp.disease_id = diseaseParameterID
+
+            push!(baseModels, model_cp)
+        end
     end
 
     behaviorsPerBatch = nworkers()
+    total_time_start = now()
     for modelBatch in collect(Iterators.partition(baseModels, behaviorsPerBatch))
         # Compute the number of epidemics being ran
         numBehaviors = length(modelBatch)
@@ -287,12 +332,14 @@ function run_simulations(
         println("Got Epidemic IDs: $(now()-epidemicIDStart)")
 
         epidemicWriteStart = now()
-        epidemicIds = pmap(_append_epidemic_level_data, models, [STORE_EPIDEMIC_SCM for _ in 1:length(models)], [db for _ in 1:length(models)]; distributed=false)
+        fetch.([Threads.@spawn _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db) for model in models]);
+        # epidemicIds = pmap(_append_epidemic_level_data, models, [STORE_EPIDEMIC_SCM for _ in 1:length(models)], [db for _ in 1:length(models)]; distributed=false)
         println("Wrote to DB: $(now()-epidemicWriteStart)")
 
         batchDuration = now() - batchStartTime
         println("Finished Batch: $(batchDuration) \nEpidemicsPerSec: $(numEpidemics/(batchDuration.value/1000))")
     end
+    println("Total Time: $(now()-total_time_start)")
 
     # connection = vacuum_database(connection)
     return db
@@ -369,7 +416,7 @@ function fill_behaved_network_target(model, maskDistributionType::String, vaxDis
     @assert (0 <= maskPortion <= 100) "Mask portion must be between 0 and 100: $maskPortion"
     @assert (0 <= vaxPortion <= 100) "Vax portion must be between 0 and 100: $vaxPortion"
 
-    # Compute number of networks needed to run
+    # Compute number of behaviors needed to run
     query = """
         SELECT BehaviorID 
         FROM BehaviorDim
@@ -404,8 +451,8 @@ function fill_behaved_network_range(networkId::Int, maskDistributionType::String
     vax_increment = floor(100 / vaxLevels)
 
     behaviorIds = []
-    for mask_step in 0:(maskLevels-1)
-        for vax_step in 0:(vaxLevels-1)
+    for mask_step in 0:(maskLevels)
+        for vax_step in 0:(vaxLevels)
             behaviorId = fill_behaved_network_target(model, maskDistributionType, vaxDistributionType, Int(mask_step * mask_increment), Int(vax_step * vax_increment), targetBehavedNetworkAmount, connection)
             push!(behaviorIds, behaviorId...)
         end

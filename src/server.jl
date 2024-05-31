@@ -3,7 +3,7 @@
 
 Run a query on the database.
 """
-function _run_query(query, db::DuckDB.DB)
+function _run_query(query, db)
     results = DBInterface.execute(db, query) |> DataFrame
     return results
 end
@@ -59,13 +59,13 @@ function _create_tables(connection)
     append!(query_list, ["CREATE OR REPLACE TABLE HouseholdLoad (TownID USMALLINT, HouseholdID INT, ChildCount INT, AdultCount INT, ElderCount INT, PRIMARY KEY (TownID, HouseholdID))"])
     append!(query_list, ["CREATE OR REPLACE TABLE NetworkDim (NetworkID USMALLINT PRIMARY KEY, TownID INT, ConstructionLengthDays INT, Model String)"])
     append!(query_list, ["CREATE OR REPLACE TABLE NetworkSCMLoad (NetworkID USMALLINT, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (NetworkID, Agent1, Agent2))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT PRIMARY KEY, NetworkID INT, DiseaseParameterID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE DiseaseParameters (DiseaseParameterID USMALLINT PRIMARY KEY, BetaStart DOUBLE, BetaEnd DOUBLE, InfectiousPeriod INT, Gamma1 DOUBLE, Gamma2 DOUBLE, ReinfectionProbability DOUBLE, VaxInfectionProbability DOUBLE)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT PRIMARY KEY, NetworkID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
     append!(query_list, ["CREATE OR REPLACE TABLE AgentLoad (BehaviorID UINTEGER, AgentID INT, AgentHouseholdID INT, IsMasking INT, IsVaxed INT, PRIMARY KEY (BehaviorID, AgentID))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicDim (EpidemicID UINTEGER PRIMARY KEY, BehaviorID UINTEGER, InfectedTotal USMALLINT, InfectedMax USMALLINT, PeakDay USMALLINT, RecoveredTotal USMALLINT, RecoveredMasked USMALLINT, RecoveredVaccinated USMALLINT, RecoveredMaskAndVax USMALLINT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicDim (EpidemicID UINTEGER PRIMARY KEY, BehaviorID UINTEGER, DiseaseParameterID INT, InfectedTotal USMALLINT, InfectedMax USMALLINT, PeakDay USMALLINT, RecoveredTotal USMALLINT, RecoveredMasked USMALLINT, RecoveredVaccinated USMALLINT, RecoveredMaskAndVax USMALLINT)"])
     append!(query_list, ["CREATE OR REPLACE TABLE EpidemicSCMLoad (EpidemicID UINTEGER, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (EpidemicID, Agent1, Agent2))"])
     append!(query_list, ["CREATE OR REPLACE TABLE TransmissionLoad (EpidemicID UINTEGER, AgentID USMALLINT, InfectedBy USMALLINT, InfectionTimeHour UINTEGER)"])
     append!(query_list, ["CREATE OR REPLACE TABLE EpidemicLoad (EpidemicID UINTEGER, Hour USMALLINT, Symptomatic USMALLINT, Recovered USMALLINT, PopulationLiving USMALLINT, PRIMARY KEY (EpidemicID, Hour))"])
+    append!(query_list, ["CREATE OR REPLACE TABLE DiseaseParameters (DiseaseParameterID USMALLINT PRIMARY KEY, BetaStart DOUBLE, BetaEnd DOUBLE, InfectiousPeriod INT, Gamma1 DOUBLE, Gamma2 DOUBLE, ReinfectionProbability DOUBLE, VaxInfectionProbability DOUBLE, RateOfDecay INT, R0 DOUBLE)"])
 
     for query in query_list
         _run_query(query, connection)
@@ -129,7 +129,7 @@ function _get_model_by_town_id(townId::Int, connection)
         model = _run_query("SELECT Model FROM TownDim WHERE TownID = $townId", connection)[1,1]
         return deserialize(model)
     catch e
-        @warn "Failed to extract model with TownId $townId: $e"
+        @warn "Failed to extract model with TownId $townId"
         return nothing
     end
 end

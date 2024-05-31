@@ -295,7 +295,7 @@ version = "0.10.1+0"
 
 [[deps.EpidemicAgentModels]]
 deps = ["Agents", "Base64", "CSV", "DataFrames", "Distributions", "Graphs", "MetaGraphs", "Parameters", "Random", "Revise", "Serialization", "SparseArrays", "Test"]
-git-tree-sha1 = "3cc18797a4b140b30c071c6b0d52bb65568494f3"
+git-tree-sha1 = "8d77ae56fdc1330c5c0e153970fd14b184e25b49"
 repo-rev = "main"
 repo-url = "https://github.com/trevorgrif/EpidemicAgentModels.git"
 uuid = "9fab8c7d-9031-4efd-8af5-7f4b7134a8cd"
