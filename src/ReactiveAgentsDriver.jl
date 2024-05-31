@@ -21,7 +21,8 @@ network_parameters,
 behavior_parameters,
 create_town,
 vacuum_database,
-DiseaseParameters
+DiseaseParameters,
+SlurmManager
 
 # Modules used for parallel computing
 using EpidemicAgentModels
