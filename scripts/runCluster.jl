@@ -1,4 +1,4 @@
-using Distributed
+using Distributed, ClusterManagers
 
 NUM_PROCESSORS = 50 # Optimally set to the number of available (logical processors) - 1
 
@@ -8,7 +8,6 @@ addprocs(SlurmManager(NUM_PROCESSORS))
 @everywhere using Pkg
 @everywhere Pkg.activate(joinpath(@__DIR__,".."))
 @everywhere using ReactiveAgentsDriver
-@everywhere using ClusterManagers
 
 # Run Variables
 NETWORK_SCM = true
