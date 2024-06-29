@@ -258,7 +258,6 @@ function run_simulations(
     end
 
     println("Filling Epidemics")
-    epidemicIds = []
     baseModels = []
     for behaviorId in behaviorIds
         model = _get_model_by_behavior_id(behaviorId, db)

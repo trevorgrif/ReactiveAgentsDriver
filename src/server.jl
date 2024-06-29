@@ -183,9 +183,9 @@ function _get_model_by_behavior_id(behaviorId::Int, connection)
     """
     vaxIdArr = run_query(query, connection)[!,1]
 
-    # Update_Agents_Attribute!(model, maskIdArr, :will_mask, [true, true, true])
-    # Update_Agents_Attribute!(model, vaxIdArr, :status, :V)
-    # Update_Agents_Attribute!(model, vaxIdArr, :vaccinated, true)
+    behave!(model, Int64.(maskIdArr), :will_mask, [true, true, true])
+    behave!(model, Int64.(vaxIdArr), :status, :V)
+    behave!(model, Int64.(vaxIdArr), :vaccinated, true)
 
     return model
 end

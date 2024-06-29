@@ -1,2 +1,4 @@
 DiseaseRange.zip
 src/temp.sql
+data/ReactiveAgents.duckdb
+data/ReactiveAgents.duckdb.wal
