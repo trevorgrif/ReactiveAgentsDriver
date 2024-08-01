@@ -379,7 +379,7 @@ function _create_epidemic_distributed!(model, epidemic_runs::Int; STORE_EPIDEMIC
         simulate!(model)
     end
     
-    models = pmap(process, models; distributed=false)
+    models = pmap(process, models)
     return models
 end
 

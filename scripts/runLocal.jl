@@ -1,9 +1,9 @@
 using Distributed
 
-NUM_PROCESSORS = 5 # Optimally set to the number of available (logical processors) - 1
+NUM_CPU_THREADS = Threads.nthreads() # Optimally set to the number of available (logical processors) - 1
 
 # Example for a standalone server simulation
-addprocs(NUM_PROCESSORS*2)
+addprocs(NUM_CPU_THREADS)
 
 @everywhere using Pkg
 @everywhere Pkg.activate(joinpath(@__DIR__,".."))
@@ -13,10 +13,10 @@ addprocs(NUM_PROCESSORS*2)
 NETWORK_SCM = true
 EPIDEMIC_SCM = true
 TOWN_ID = 1
-NUM_NETWORKS = 5
+NUM_NETWORKS = 1
 NUM_BEHAVIORS = 1
-NUM_EPIDEMICS = 50
-NETWORK_INITIAL_LENGTH = 10
+NUM_EPIDEMICS = 100
+NETWORK_INITIAL_LENGTH = 30
 MASK_PARTITIONS = 5
 VAX_PARTITIONS = 5
 BEHAVIOR_DISTR_TYPES = [
