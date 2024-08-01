@@ -1,13 +1,13 @@
 using Distributed, ClusterManagers
 
-@everywhere using Pkg
-@everywhere Pkg.activate(joinpath(@__DIR__,".."))
-@everywhere using ReactiveAgentsDriver
-
-NUM_CPU_THREADS = 40 # Optimally set to the number of available (logical processors) - 1
+NUM_CPU_THREADS = Threads.nthreads() # Optimally set to the number of available (logical processors) - 1
 
 # Example for a Slurm Cluster simulation
 addprocs(SlurmManager(NUM_CPU_THREADS))
+
+@everywhere using Pkg
+@everywhere Pkg.activate(joinpath(@__DIR__,".."))
+@everywhere using ReactiveAgentsDriver
 
 # Run Variables
 NETWORK_SCM = true
