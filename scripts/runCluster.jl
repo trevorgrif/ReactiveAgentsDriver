@@ -1,13 +1,14 @@
-using Distributed, ClusterManagers
-
-NUM_PROCESSORS = 50 # Optimally set to the number of available (logical processors) - 1
-
-# Example for a Slurm Cluster simulation
-addprocs(SlurmManager(NUM_PROCESSORS))
+using Distributed
 
 @everywhere using Pkg
 @everywhere Pkg.activate(joinpath(@__DIR__,".."))
 @everywhere using ReactiveAgentsDriver
+
+NUM_PROCESSORS = 10 # Optimally set to the number of available (logical processors) - 1
+
+# Example for a Slurm Cluster simulation
+addprocs(SlurmManager(NUM_PROCESSORS))
+
 
 # Run Variables
 NETWORK_SCM = false
