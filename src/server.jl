@@ -51,28 +51,27 @@ end
 
 function _create_tables(connection)
     query_list = []
-    append!(query_list, ["CREATE OR REPLACE TABLE PopulationDim (PopulationID USMALLINT PRIMARY KEY, Description VARCHAR)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE PopulationLoad (PopulationID USMALLINT, AgentID INT, HouseID INT, AgeRangeID VARCHAR, Sex VARCHAR, IncomeRange VARCHAR, PRIMARY KEY (PopulationID, AgentID))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE TownDim (TownID USMALLINT PRIMARY KEY, PopulationID USMALLINT, BusinessCount INT, HouseCount INT, SchoolCount INT, DaycareCount INT, GatheringCount INT, AdultCount INT, ElderCount INT, ChildCount INT, EmptyBusinessCount INT, Model String)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE BusinessTypeDim (BusinessTypeID USMALLINT PRIMARY KEY, Description VARCHAR)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE BusinessLoad (TownID USMALLINT, BusinessID INT, BusinessTypeID INT, EmployeeCount INT, PRIMARY KEY (TownID, BusinessID))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE HouseholdLoad (TownID USMALLINT, HouseholdID INT, ChildCount INT, AdultCount INT, ElderCount INT, PRIMARY KEY (TownID, HouseholdID))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE NetworkDim (NetworkID USMALLINT PRIMARY KEY, TownID INT, ConstructionLengthDays INT, Model String)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE NetworkSCMLoad (NetworkID USMALLINT, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (NetworkID, Agent1, Agent2))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT PRIMARY KEY, NetworkID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE AgentLoad (BehaviorID UINTEGER, AgentID INT, AgentHouseholdID INT, IsMasking INT, IsVaxed INT, PRIMARY KEY (BehaviorID, AgentID))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicDim (EpidemicID UINTEGER PRIMARY KEY, BehaviorID UINTEGER, DiseaseParameterID INT, InfectedTotal USMALLINT, InfectedMax USMALLINT, PeakDay USMALLINT, RecoveredTotal USMALLINT, RecoveredMasked USMALLINT, RecoveredVaccinated USMALLINT, RecoveredMaskAndVax USMALLINT)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicSCMLoad (EpidemicID UINTEGER, Agent1 INT, Agent2 INT, Weight INT, PRIMARY KEY (EpidemicID, Agent1, Agent2))"])
+    append!(query_list, ["CREATE OR REPLACE TABLE PopulationDim (PopulationID USMALLINT, Description VARCHAR)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE PopulationLoad (PopulationID USMALLINT, AgentID INT, HouseID INT, AgeRangeID VARCHAR, Sex VARCHAR, IncomeRange VARCHAR)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE TownDim (TownID USMALLINT, PopulationID USMALLINT, BusinessCount INT, HouseCount INT, SchoolCount INT, DaycareCount INT, GatheringCount INT, AdultCount INT, ElderCount INT, ChildCount INT, EmptyBusinessCount INT, Model String)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE BusinessTypeDim (BusinessTypeID USMALLINT, Description VARCHAR)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE BusinessLoad (TownID USMALLINT, BusinessID INT, BusinessTypeID INT, EmployeeCount INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE HouseholdLoad (TownID USMALLINT, HouseholdID INT, ChildCount INT, AdultCount INT, ElderCount INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE NetworkDim (NetworkID USMALLINT, TownID INT, ConstructionLengthDays INT, Model String)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE NetworkSCMLoad (NetworkID USMALLINT, Agent1 INT, Agent2 INT, Weight INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE BehaviorDim (BehaviorID USMALLINT, NetworkID INT, MaskDistributionType VARCHAR , VaxDistributionType VARCHAR, MaskPortion INT, VaxPortion INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE AgentLoad (BehaviorID UINTEGER, AgentID INT, AgentHouseholdID INT, IsMasking INT, IsVaxed INT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicDim (EpidemicID UINTEGER, BehaviorID UINTEGER, DiseaseParameterID INT, InfectedTotal USMALLINT, InfectedMax USMALLINT, PeakDay USMALLINT, RecoveredTotal USMALLINT, RecoveredMasked USMALLINT, RecoveredVaccinated USMALLINT, RecoveredMaskAndVax USMALLINT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicSCMLoad (EpidemicID UINTEGER, Agent1 INT, Agent2 INT, Weight INT)"])
     append!(query_list, ["CREATE OR REPLACE TABLE TransmissionLoad (EpidemicID UINTEGER, AgentID USMALLINT, InfectedBy USMALLINT, InfectionTimeHour UINTEGER)"])
-    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicLoad (EpidemicID UINTEGER, Hour USMALLINT, Symptomatic USMALLINT, Recovered USMALLINT, PopulationLiving USMALLINT, PRIMARY KEY (EpidemicID, Hour))"])
-    append!(query_list, ["CREATE OR REPLACE TABLE DiseaseParameters (DiseaseParameterID USMALLINT PRIMARY KEY, BetaStart DOUBLE, BetaEnd DOUBLE, InfectiousPeriod INT, Gamma1 DOUBLE, Gamma2 DOUBLE, ReinfectionProbability DOUBLE, VaxInfectionProbability DOUBLE, RateOfDecay INT, R0 DOUBLE)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE EpidemicLoad (EpidemicID UINTEGER, Hour USMALLINT, Symptomatic USMALLINT, Recovered USMALLINT, PopulationLiving USMALLINT)"])
+    append!(query_list, ["CREATE OR REPLACE TABLE DiseaseParameters (DiseaseParameterID USMALLINT, BetaStart DOUBLE, BetaEnd DOUBLE, InfectiousPeriod INT, Gamma1 DOUBLE, Gamma2 DOUBLE, ReinfectionProbability DOUBLE, VaxInfectionProbability DOUBLE, RateOfDecay INT, R0 DOUBLE)"])
 
     for query in query_list
         _run_query(query, connection)
     end
 end
 
-# Doesn't this drop all primary key logic??
 function _vacuum_database(connection)
     database_name = _run_query("SELECT database_name FROM duckdb_databases() WHERE database_name not in ('system', 'temp');", connection)[1,1]
     path_connection = _run_query("SELECT path FROM duckdb_databases() WHERE database_name = '$(database_name)';", connection)[1,1]
