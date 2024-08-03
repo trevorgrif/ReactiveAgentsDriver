@@ -1,6 +1,6 @@
-using Distributed, ClusterManagers, ThreadPinning
+using Distributed, ClusterManagers
 
-pinthreads(:affinitymask)
+# pinthreads(:affinitymask)
 
 NUM_CPU_THREADS = Threads.nthreads()
 @show NUM_CPU_THREADS
