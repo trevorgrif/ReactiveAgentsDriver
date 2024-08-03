@@ -9,6 +9,7 @@ addprocs(NUM_CPU_THREADS)
 @everywhere Pkg.activate(joinpath(@__DIR__,".."))
 @everywhere using ReactiveAgentsDriver
 
+
 # Run Variables
 NETWORK_SCM = true
 EPIDEMIC_SCM = true

@@ -332,12 +332,12 @@ function run_simulations(
 
         epidemicWriteStart = now()
         # Multi-threaded write to db
-        # fetch.([Threads.@spawn _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db) for model in models]);
+        fetch.([Threads.@spawn _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db) for model in models]);
 
         # Single threaded write to db
-        for model in models
-            _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db)
-        end
+        # for model in models
+        #     _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db)
+        # end
 
         # Multi-process write to db
         # epidemicIds = pmap(_append_epidemic_level_data, models, [STORE_EPIDEMIC_SCM for _ in 1:length(models)], [db for _ in 1:length(models)]; distributed=false)
@@ -345,7 +345,7 @@ function run_simulations(
         epidemicWriteProcessTime = now()-epidemicWriteStart
 
         batchDuration = now() - batchStartTime
-        println("Finished Batch ($(length(numEpidemics))): \n\tTotal Time: $(batchDuration.value/1000) secs \n\tEpidemics/sec: $(numEpidemics/(batchDuration.value/1000)) \n\tEpidemic Process Time: $(epidemicProcessTime.value/1000) secs \n\tEpidemic ID Process Time: $(epidemicIDProcessTime.value/1000) secs \n\tEpidemic Write Time: $(epidemicWriteProcessTime.value/1000) secs")
+        println("Finished Batch ($(numEpidemics) epidemics): \n\tTotal Time: $(batchDuration.value/1000) secs \n\tEpidemics/sec: $(numEpidemics/(batchDuration.value/1000)) \n\tEpidemic Process Time: $(epidemicProcessTime.value/1000) secs \n\tID Gather Time: $(epidemicIDProcessTime.value/1000) secs \n\tEpidemic Write Time: $(epidemicWriteProcessTime.value/1000) secs")
     end
     println("Total Time: $(now()-total_time_start)")
 

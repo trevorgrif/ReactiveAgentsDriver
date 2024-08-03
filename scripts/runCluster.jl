@@ -1,4 +1,6 @@
-using Distributed, ClusterManagers
+using Distributed, ClusterManagers, ThreadPinning
+
+pinthreads(:affinitymask)
 
 NUM_CPU_THREADS = Threads.nthreads() # Optimally set to the number of available (logical processors) - 1
 
@@ -17,13 +19,13 @@ NUM_NETWORKS = 1
 NUM_BEHAVIORS = 1
 NUM_EPIDEMICS = 100
 NETWORK_INITIAL_LENGTH = 30
-MASK_PARTITIONS = 5
-VAX_PARTITIONS = 5
+MASK_PARTITIONS = 1
+VAX_PARTITIONS = 1
 BEHAVIOR_DISTR_TYPES = [
    ("Random", "Random"),
-   ("Random", "Watts"),
-   ("Watts", "Random"),
-   ("Watts", "Watts")
+   # ("Random", "Watts"),
+   # ("Watts", "Random"),
+   # ("Watts", "Watts")
 ]
 
 con = connect_to_database()
