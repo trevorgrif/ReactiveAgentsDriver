@@ -1,6 +1,7 @@
 using Distributed
 
-NUM_CPU_THREADS = Threads.nthreads() # Optimally set to the number of available (logical processors) - 1
+NUM_CPU_THREADS = Threads.nthreads()
+@show NUM_CPU_THREADS
 
 # Example for a standalone server simulation
 addprocs(NUM_CPU_THREADS)
