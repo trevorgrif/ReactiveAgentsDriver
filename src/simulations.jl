@@ -374,12 +374,12 @@ function _create_epidemic_distributed!(model, epidemic_runs::Int; STORE_EPIDEMIC
     @assert epidemic_runs > -1 "epidemic_runs must be postive: $(epidemic_runs)"
 
     models = [deepcopy(model) for _ in 1:epidemic_runs]
-    process = (model) -> begin
+    process! = (model) -> begin
         infect!(model, 1)
         simulate!(model)
     end
     
-    models = pmap(process, models)
+    models = [process!(model) for model in models]
     return models
 end
 

@@ -307,7 +307,7 @@ function run_simulations(
         end
     end
 
-    behaviorsPerBatch = 1 #nworkers()
+    behaviorsPerBatch = nworkers()
     total_time_start = now()
     for modelBatch in collect(Iterators.partition(baseModels, behaviorsPerBatch))
         # Compute the number of epidemics being ran
@@ -318,9 +318,11 @@ function run_simulations(
         # Run numEpidemics for each behavior over the cluster --> flatten results
         # Since we don't store the models after the epidemic, we shouldn't return the entire model from 'fill_epidemic_target'
         epidemicRunStartTime = now()
-        # models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
-        models = fill_epidemic_target(modelBatch[1], epidemicCount, STORE_EPIDEMIC_SCM)
-        # models = reduce(vcat, models)
+
+        # Run epidemics
+        # models = fill_epidemic_target(modelBatch[1], epidemicCount, STORE_EPIDEMIC_SCM)
+        models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
+        models = reduce(vcat, models)
         epidemicProcessTime = now()-epidemicRunStartTime
 
         epidemicIDStart = now()
