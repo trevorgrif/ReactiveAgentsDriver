@@ -313,7 +313,6 @@ function run_simulations(
         # Compute the number of epidemics being ran
         numBehaviors = length(modelBatch)
         numEpidemics = epidemicCount * numBehaviors
-        println("Starting Batch of $(numEpidemics) epidemics")
         batchStartTime = now()
 
         # Run numEpidemics for each behavior over the cluster --> flatten results
@@ -322,22 +321,31 @@ function run_simulations(
         # models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
         models = fill_epidemic_target(modelBatch[1], epidemicCount, STORE_EPIDEMIC_SCM)
         # models = reduce(vcat, models)
-        println("Finished Running Epidemics ($(length(models))): $(now()-epidemicRunStartTime)")
+        epidemicProcessTime = now()-epidemicRunStartTime
 
         epidemicIDStart = now()
         for model in models
             id = run_query("SELECT nextval('EpidemicDimSequence')", db)[1, 1]
             model.epidemic_id = id
         end
-        println("Got Epidemic IDs: $(now()-epidemicIDStart)")
+        epidemicIDProcessTime = now()-epidemicIDStart
 
         epidemicWriteStart = now()
-        fetch.([Threads.@spawn _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db) for model in models]);
+        # Multi-threaded write to db
+        # fetch.([Threads.@spawn _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db) for model in models]);
+
+        # Single threaded write to db
+        for model in models
+            _append_epidemic_level_data(model, STORE_EPIDEMIC_SCM, db)
+        end
+
+        # Multi-process write to db
         # epidemicIds = pmap(_append_epidemic_level_data, models, [STORE_EPIDEMIC_SCM for _ in 1:length(models)], [db for _ in 1:length(models)]; distributed=false)
-        println("Wrote to DB: $(now()-epidemicWriteStart)")
+        
+        epidemicWriteProcessTime = now()-epidemicWriteStart
 
         batchDuration = now() - batchStartTime
-        println("Finished Batch: $(batchDuration) \nEpidemicsPerSec: $(numEpidemics/(batchDuration.value/1000))")
+        println("Finished Batch ($(length(numEpidemics))): \n\tTotal Time: $(batchDuration.value/1000) secs \n\tEpidemics/sec: $(numEpidemics/(batchDuration.value/1000)) \n\tEpidemic Process Time: $(epidemicProcessTime.value/1000) secs \n\tEpidemic ID Process Time: $(epidemicIDProcessTime.value/1000) secs \n\tEpidemic Write Time: $(epidemicWriteProcessTime.value/1000) secs")
     end
     println("Total Time: $(now()-total_time_start)")
 

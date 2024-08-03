@@ -38,7 +38,8 @@ for behavior_distr in BEHAVIOR_DISTR_TYPES
       NUM_EPIDEMICS,
       con,
       STORE_NETWORK_SCM=NETWORK_SCM,
-      STORE_EPIDEMIC_SCM=EPIDEMIC_SCM
+      STORE_EPIDEMIC_SCM=EPIDEMIC_SCM,
+      DISEASE_PARAMS=[DiseaseParameters(infectious_period=10, γ_parameters=[0.8,4.0])]
    )
 end
 

@@ -17,13 +17,13 @@ NUM_NETWORKS = 1
 NUM_BEHAVIORS = 1
 NUM_EPIDEMICS = 100
 NETWORK_INITIAL_LENGTH = 30
-MASK_PARTITIONS = 5
-VAX_PARTITIONS = 5
+MASK_PARTITIONS = 1
+VAX_PARTITIONS = 1
 BEHAVIOR_DISTR_TYPES = [
    ("Random", "Random"),
-   ("Random", "Watts"),
-   ("Watts", "Random"),
-   ("Watts", "Watts")
+   # ("Random", "Watts"),
+   # ("Watts", "Random"),
+   # ("Watts", "Watts")
 ]
 
 
@@ -39,7 +39,8 @@ for behavior_distr in BEHAVIOR_DISTR_TYPES
       NUM_EPIDEMICS,
       con,
       STORE_NETWORK_SCM=NETWORK_SCM,
-      STORE_EPIDEMIC_SCM=EPIDEMIC_SCM
+      STORE_EPIDEMIC_SCM=EPIDEMIC_SCM,
+      DISEASE_PARAMS=[DiseaseParameters(infectious_period=10, γ_parameters=[0.8,4.0])]
    )
 end
 
