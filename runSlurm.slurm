@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J ABM
 #SBATCH --mem=80G
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=10
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=EMAIL
 #SBATCH -C "ceph"
@@ -11,4 +11,4 @@ module load julia
 
 cd $SLURM_SUBMIT_DIR
 
-julia -tauto $FILE
+julia -t 10 $FILE
