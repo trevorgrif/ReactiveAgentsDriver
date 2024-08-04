@@ -240,7 +240,8 @@ function run_simulations(
     epidemicCount::Int,
     db::DuckDB.DB; STORE_NETWORK_SCM::Bool=true,
     STORE_EPIDEMIC_SCM::Bool=true,
-    DISEASE_PARAMS::Vector{DiseaseParameters}=[DiseaseParameters()]
+    DISEASE_PARAMS::Vector{DiseaseParameters}=[DiseaseParameters()],
+    BEHAVIORS_PER_BATCH::Int=1
 )
     # TODO: Validate database structure
 
@@ -307,9 +308,8 @@ function run_simulations(
         end
     end
 
-    behaviorsPerBatch = nworkers()
     total_time_start = now()
-    for modelBatch in collect(Iterators.partition(baseModels, behaviorsPerBatch))
+    for modelBatch in collect(Iterators.partition(baseModels, BEHAVIORS_PER_BATCH))
         # Compute the number of epidemics being ran
         numBehaviors = length(modelBatch)
         numEpidemics = epidemicCount * numBehaviors
@@ -321,9 +321,19 @@ function run_simulations(
 
         # Run epidemics
         # models = fill_epidemic_target(modelBatch[1], epidemicCount, STORE_EPIDEMIC_SCM)
-        models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
-        models = reduce(vcat, models)
+        # models = pmap(fill_epidemic_target, modelBatch, [epidemicCount for _ in 1:numBehaviors], [STORE_EPIDEMIC_SCM for _ in 1:numBehaviors];)
+        # models = reduce(vcat, models)
+        
+        # New Methods:
+        # Run all epidemics in modelBatch with pmap
+        process = (model) -> begin
+            modelCopy = deepcopy(model)
+            infect!(modelCopy, 1)
+            simulate!(modelCopy)
+        end
+        models = pmap(process, [modelBatch[(i%numBehaviors) + 1] for i in 0:(epidemicCount*numBehaviors-1)])
         epidemicProcessTime = now()-epidemicRunStartTime
+
 
         epidemicIDStart = now()
         for model in models
